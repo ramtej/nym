@@ -23,7 +23,7 @@ export const getConfig = (opts) => ({
     resolve({ extensions }),
     // this is some nasty monkey patching that removes the WASM URL (because it is handled by the `wasm` plugin)
     replace({
-      values: { "input = new URL('mix_fetch_wasm_bg.wasm', import.meta.url);": 'input = undefined;' },
+      values: { "input = new URL('nym_credential_client_wasm_bg.wasm', import.meta.url);": 'input = undefined;' },
       delimiters: ['', ''],
       preventAssignment: true,
     }),
