@@ -1,35 +1,49 @@
-export interface INodeTesterWorkerAsync {
-  init: (validatorUrl: string, nodeTesterId?: string) => Promise<void>;
-  reconnectToGateway: () => Promise<void>;
-  disconnectFromGateway: () => Promise<void>;
-  startTest: (mixnodeIdentityKey: string) => Promise<NodeTestResultResponse | undefined>;
+// TODO: This entire file could probably be removed,
+// if the referenced types can be put in a package created from common/client-core with wasm_bindgen
+
+export interface CredentialClientOpts {
+  networkDetails?: NymNetworkDetails;
+  useSandbox?: boolean;
 }
 
-export interface INodeTesterWorkerDisposableAsync {
-  terminate: () => Promise<void>;
+// Taken from https://github.com/nymtech/nym/blob/5a3dcdf9602a49bbda8c974960dbe23a10772dbd/common/network-defaults/src/lib.rs#L90
+export interface NymNetworkDetails {
+  networkName: string;
+  chainDetails: ChainDetails;
+  endpoints: ValidatorDetails[];
+  contracts: NymContracts;
+  explorerApi?: string;
 }
 
-export interface NodeTester extends INodeTesterWorkerDisposableAsync {
-  tester: INodeTesterWorkerAsync;
+// Source: https://github.com/nymtech/nym/blob/5a3dcdf9602a49bbda8c974960dbe23a10772dbd/common/network-defaults/src/lib.rs#L373
+interface DenomDetailsOwned {
+  base: string;
+  display: string;
+  displayExponent: number;
 }
 
-export enum NodeTesterEventKinds {
-  Loaded = 'Loaded',
-  Connected = 'Connected',
+// Source: https://github.com/nymtech/nym/blob/5a3dcdf9602a49bbda8c974960dbe23a10772dbd/common/network-defaults/src/lib.rs#L409
+interface ValidatorDetails {
+  nyxdUrl: string;
+  apiUrl?: string;
 }
 
-export interface NodeTesterLoadedEvent {
-  kind: NodeTesterEventKinds.Loaded;
-  args: {
-    loaded: true;
-  };
+// Source: https://github.com/nymtech/nym/blob/5a3dcdf9602a49bbda8c974960dbe23a10772dbd/common/network-defaults/src/lib.rs#L29
+interface ChainDetails {
+  bech32AccountPrefix: string;
+  mixDenom: DenomDetailsOwned;
+  stakeDenom: DenomDetailsOwned;
 }
 
-export type NodeTestResultResponse = {
-  score: number;
-  sentPackets: number;
-  receivedPackets: number;
-  receivedAcks: number;
-  duplicatePackets: number;
-  duplicateAcks: number;
-};
+// Source: https://github.com/nymtech/nym/blob/5a3dcdf9602a49bbda8c974960dbe23a10772dbd/common/network-defaults/src/lib.rs#L45
+interface NymContracts {
+  mixnetContractAddress?: string;
+  vestingContractAddress?: string;
+  coconutBandwidthContractAddress?: string;
+  groupContractAddress?: string;
+  multisigContractAddress?: string;
+  coconutDkgContractAddress?: string;
+  ephemeraContractAddress?: string;
+  serviceProviderDirectoryContractAddress?: string;
+  nameServiceContractAddress?: string;
+}

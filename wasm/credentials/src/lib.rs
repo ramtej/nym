@@ -11,7 +11,7 @@ mod helpers;
 mod opts;
 
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen(start)]
 #[cfg(target_arch = "wasm32")]

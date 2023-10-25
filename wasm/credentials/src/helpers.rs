@@ -20,7 +20,7 @@ pub(crate) fn minimal_coconut_sandbox() -> NymNetworkDetails {
         network_name: default_mainnet.network_name,
         chain_details: default_mainnet.chain_details,
         endpoints: vec![ValidatorDetails::new(
-            "https://sandbox-validator1.nymtech.net",
+            "https://sandbox-nym-api1.nymtech.net",
             None,
         )],
         contracts: NymContracts {
