@@ -6,7 +6,7 @@ set -o pipefail
 
 yarn
 yarn build
-cd ../../../../dist/ts/sdk/node-tester
+cd ../../../../dist/ts/sdk/credentials
 
 cd cjs
 echo "Publishing CommonJS package to NPM.."
