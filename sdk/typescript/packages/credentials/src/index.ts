@@ -11,19 +11,14 @@ export async function createBandwithCredential(
   mnemonic: string,
   amountToDeposit: string,
   opts: CredentialClientOpts,
-): Promise<WasmCoconutCredential | undefined> {
-  try {
-    // rollup with provide a function to get the mixFetch WASM bytes
-    const bytes = await getCredentialWasmBytes();
+): Promise<WasmCoconutCredential> {
+  // rollup with provide a function to get the mixFetch WASM bytes
+  const bytes = await getCredentialWasmBytes();
 
-    // load rust WASM package
-    await init(bytes);
-    console.log('Loaded RUST WASM');
+  // load rust WASM package
+  await init(bytes);
+  console.log('Loaded RUST WASM');
 
-    const credential: WasmCoconutCredential = await acquireCredential(mnemonic, amountToDeposit, opts);
-    return credential;
-  } catch (err) {
-    console.error(err);
-    return undefined;
-  }
+  const credential: WasmCoconutCredential = await acquireCredential(mnemonic, amountToDeposit, opts);
+  return credential;
 }

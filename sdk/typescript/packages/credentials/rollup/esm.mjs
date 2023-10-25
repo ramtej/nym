@@ -1,5 +1,4 @@
-import commonjs from "@rollup/plugin-commonjs";
-import replace from '@rollup/plugin-replace';
+import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import { wasm } from '@rollup/plugin-wasm';
