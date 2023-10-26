@@ -163,6 +163,7 @@ impl From<Run> for OverrideConfig {
             nyxd_urls: run_config.nyxd_urls,
             only_coconut_credentials: run_config.only_coconut_credentials,
             with_network_requester: run_config.with_network_requester,
+            with_ip_forwarder: run_config.with_ip_forwarder,
         }
     }
 }

@@ -3,7 +3,9 @@
 
 use crate::commands::upgrade_helpers;
 use crate::config::default_config_filepath;
-use crate::config::persistence::paths::{default_network_requester_data_dir, default_ip_forwarder_data_dir};
+use crate::config::persistence::paths::{
+    default_ip_forwarder_data_dir, default_network_requester_data_dir,
+};
 use crate::config::Config;
 use crate::error::GatewayError;
 use log::{error, info};
@@ -39,6 +41,7 @@ pub(crate) struct OverrideConfig {
     pub(crate) nyxd_urls: Option<Vec<url::Url>>,
     pub(crate) only_coconut_credentials: Option<bool>,
     pub(crate) with_network_requester: Option<bool>,
+    pub(crate) with_ip_forwarder: Option<bool>,
 }
 
 impl OverrideConfig {
@@ -76,7 +79,8 @@ impl OverrideConfig {
             .with_optional(
                 Config::with_enabled_network_requester,
                 self.with_network_requester,
-            );
+            )
+            .with_optional(Config::with_enabled_ip_forwarder, self.with_ip_forwarder);
 
         if config.network_requester.enabled
             && config.storage_paths.network_requester_config.is_none()
