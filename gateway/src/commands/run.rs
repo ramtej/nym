@@ -181,8 +181,10 @@ impl<'a> From<&'a Run> for OverrideNetworkRequesterConfig {
     }
 }
 
-impl From<Run> for OverrideIpForwarderConfig {
-    fn from(ip_config: 
+impl From<&Run> for OverrideIpForwarderConfig {
+    fn from(_value: &Run) -> Self {
+        OverrideIpForwarderConfig {}
+    }
 }
 
 fn show_binding_warning(address: IpAddr) {
@@ -246,7 +248,8 @@ pub async fn execute(args: Run) -> anyhow::Result<()> {
     }
 
     let node_details = node_details(&config)?;
-    let gateway = crate::node::create_gateway(config, Some(nr_opts), None, custom_mixnet).await?;
+    let gateway =
+        crate::node::create_gateway(config, Some(nr_opts), Some(ip_opts), custom_mixnet).await?;
     eprintln!(
         "\nTo bond your gateway you will need to install the Nym wallet, go to https://nymtech.net/get-involved and select the Download button.\n\
          Select the correct version and install it to your machine. You will need to provide some of the following: \n ");
