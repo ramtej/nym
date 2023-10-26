@@ -214,6 +214,7 @@ impl<St> Gateway<St> {
 
     fn start_client_websocket_listener(
         &self,
+        allowed_egress: AllowedEgress,
         forwarding_channel: MixForwardingSender,
         active_clients_store: ActiveClientsStore,
         shutdown: TaskClient,
@@ -230,6 +231,7 @@ impl<St> Gateway<St> {
 
         websocket::Listener::new(
             listening_address,
+            allowed_egress,
             Arc::clone(&self.identity_keypair),
             self.config.gateway.only_coconut_credentials,
             coconut_verifier,
@@ -540,6 +542,7 @@ impl<St> Gateway<St> {
         .start(shutdown.subscribe().named("http-api"))?;
 
         self.start_client_websocket_listener(
+            egress,
             mix_forwarding_channel,
             active_clients_store,
             shutdown.subscribe().named("websocket::Listener"),
