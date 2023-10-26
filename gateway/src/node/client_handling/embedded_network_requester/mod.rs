@@ -28,6 +28,16 @@ impl LocalNetworkRequesterHandle {
         }
     }
 
+    pub(crate) fn new_ip(
+        start_data: nym_ip_forwarder::OnStartData,
+        mix_message_sender: MixMessageSender,
+    ) -> Self {
+        Self {
+            address: start_data.address,
+            mix_message_sender,
+        }
+    }
+
     pub(crate) fn client_destination(&self) -> DestinationAddressBytes {
         self.address.identity().derive_destination_address()
     }
