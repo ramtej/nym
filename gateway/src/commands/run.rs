@@ -15,6 +15,8 @@ use nym_node::error::NymNodeError;
 use std::net::IpAddr;
 use std::path::PathBuf;
 
+use super::helpers::OverrideIpForwarderConfig;
+
 #[derive(Args, Clone)]
 pub struct Run {
     /// Id of the gateway we want to run
@@ -87,6 +89,10 @@ pub struct Run {
     /// Allows this gateway to run an embedded network requester for minimal network overhead
     #[clap(long)]
     with_network_requester: Option<bool>,
+
+    /// Allows this gateway to run an embedded network requester for minimal network overhead
+    #[clap(long)]
+    with_ip_forwarder: Option<bool>,
 
     // ##### NETWORK REQUESTER FLAGS #####
     /// Specifies whether this network requester should run in 'open-proxy' mode
@@ -175,6 +181,10 @@ impl<'a> From<&'a Run> for OverrideNetworkRequesterConfig {
     }
 }
 
+impl From<Run> for OverrideIpForwarderConfig {
+    fn from(ip_config: 
+}
+
 fn show_binding_warning(address: IpAddr) {
     eprintln!("\n##### NOTE #####");
     eprintln!(
@@ -217,6 +227,7 @@ pub async fn execute(args: Run) -> anyhow::Result<()> {
     let output = args.output;
     let custom_mixnet = args.custom_mixnet.clone();
     let nr_opts = (&args).into();
+    let ip_opts = (&args).into();
 
     let config = build_config(id, args)?;
     ensure_config_version_compatibility(&config)?;
