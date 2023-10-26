@@ -98,7 +98,6 @@ pub(crate) async fn create_gateway(
         config,
         custom_mixnet_path: custom_mixnet,
     });
-    dbg!(&ip_opts);
 
     Gateway::new(config, nr_opts, ip_opts, storage)
 }

@@ -86,6 +86,9 @@ impl OverrideConfig {
             && config.storage_paths.network_requester_config.is_none()
         {
             Ok(config.with_default_network_requester_config_path())
+        } else if config.ip_forwarder.enabled && config.storage_paths.ip_forwarder_config.is_none()
+        {
+            Ok(config.with_default_ip_forwarder_config_path())
         } else {
             Ok(config)
         }
