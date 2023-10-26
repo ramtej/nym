@@ -3,7 +3,7 @@
 
 use crate::commands::upgrade_helpers;
 use crate::config::default_config_filepath;
-use crate::config::persistence::paths::default_network_requester_data_dir;
+use crate::config::persistence::paths::{default_network_requester_data_dir, default_ip_forwarder_data_dir};
 use crate::config::Config;
 use crate::error::GatewayError;
 use log::{error, info};
@@ -17,7 +17,7 @@ use nym_network_requester::config::BaseClientConfig;
 use nym_network_requester::{
     setup_gateway, GatewaySelectionSpecification, GatewaySetup, OnDiskGatewayDetails, OnDiskKeys,
 };
-use nym_types::gateway::GatewayNetworkRequesterDetails;
+use nym_types::gateway::{GatewayIpForwarderDetails, GatewayNetworkRequesterDetails};
 use nym_validator_client::nyxd::AccountId;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -166,6 +166,10 @@ fn make_nr_id(gateway_id: &str) -> String {
     format!("{gateway_id}-network-requester")
 }
 
+fn make_ip_id(gateway_id: &str) -> String {
+    format!("{gateway_id}-ip-forwarder")
+}
+
 // NOTE: make sure this is in sync with service-providers/network-requester/src/cli/mod.rs::override_config
 pub(crate) fn override_network_requester_config(
     mut cfg: nym_network_requester::Config,
@@ -301,5 +305,65 @@ pub(crate) async fn initialise_local_network_requester(
             .unknown_list_location
             .display()
             .to_string(),
+    })
+}
+
+pub(crate) async fn initialise_local_ip_forwarder(
+    gateway_config: &Config,
+    opts: OverrideIpForwarderConfig,
+    identity: identity::PublicKey,
+) -> Result<GatewayIpForwarderDetails, GatewayError> {
+    info!("initialising ip forwarder...");
+    let Some(ip_cfg_path) = gateway_config.storage_paths.ip_forwarder_config() else {
+        return Err(GatewayError::UnspecifiedIpForwarderConfig);
+    };
+
+    let id = &gateway_config.gateway.id;
+    let ip_id = make_ip_id(id);
+    let ip_data_dir = default_ip_forwarder_data_dir(id);
+    let mut ip_cfg = nym_ip_forwarder::Config::new(&ip_id).with_data_directory(ip_data_dir);
+    ip_cfg = override_ip_forwarder_config(ip_cfg, Some(opts));
+
+    let key_store = OnDiskKeys::new(ip_cfg.storage_paths.common_paths.keys.clone());
+    let details_store =
+        OnDiskGatewayDetails::new(&ip_cfg.storage_paths.common_paths.gateway_details);
+
+    // gateway setup here is way simpler as we're 'connecting' to ourselves
+    let init_res = setup_gateway(
+        GatewaySetup::New {
+            specification: GatewaySelectionSpecification::Custom {
+                gateway_identity: identity.to_base58_string(),
+                additional_data: Default::default(),
+            },
+            available_gateways: vec![],
+            overwrite_data: false,
+        },
+        &key_store,
+        &details_store,
+    )
+    .await?;
+
+    let address = init_res.client_address()?;
+
+    if let Err(err) = save_formatted_config_to_file(&ip_cfg, ip_cfg_path) {
+        log::error!("Failed to save the ip forwarder config file: {err}");
+        return Err(GatewayError::ConfigSaveFailure {
+            id: ip_id,
+            path: ip_cfg_path.to_path_buf(),
+            source: err,
+        });
+    } else {
+        eprintln!(
+            "Saved ip forwarder configuration file to {}",
+            ip_cfg_path.display()
+        )
+    }
+
+    Ok(GatewayIpForwarderDetails {
+        enabled: gateway_config.ip_forwarder.enabled,
+        identity_key: address.identity().to_string(),
+        encryption_key: address.encryption_key().to_string(),
+        address: address.to_string(),
+        config_path: ip_cfg_path.display().to_string(),
     })
 }
