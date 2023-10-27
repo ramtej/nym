@@ -6657,9 +6657,12 @@ dependencies = [
  "nym-service-providers-common",
  "nym-sphinx",
  "nym-task",
+ "nym-wireguard",
+ "nym-wireguard-types",
  "serde",
  "serde_json",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
