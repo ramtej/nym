@@ -6648,6 +6648,7 @@ dependencies = [
 name = "nym-ip-forwarder"
 version = "0.1.0"
 dependencies = [
+ "etherparse",
  "futures",
  "log",
  "nym-bin-common",
@@ -6661,6 +6662,7 @@ dependencies = [
  "nym-wireguard-types",
  "serde",
  "serde_json",
+ "tap",
  "thiserror",
  "tokio",
 ]
