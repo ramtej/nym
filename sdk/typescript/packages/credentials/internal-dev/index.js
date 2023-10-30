@@ -1,3 +1,3 @@
-import { createBandwithCredential } from '../dist/esm/index.js';
+import { acquireBandwidthCredential, recoverBandwidthCredential } from '../dist/esm/index.js';
 
-export { createBandwithCredential };
+export { acquireBandwidthCredential, recoverBandwidthCredential };
