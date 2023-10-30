@@ -1,3 +1,3 @@
-import { createBandwithCredential } from '../dist/esm-full-fat/index.js';
+import { createBandwithCredential } from '../dist/cjs/index.js';
 
 export { createBandwithCredential };

@@ -21,6 +21,7 @@ rollup -c rollup-esm.config.mjs
 
 # build the SDK as a CommonJS bundle
 rollup -c rollup-cjs.config.mjs
+node scripts/postBuildReplace.mjs dist
 
 #-------------------------------------------------------
 # ESM (full-fat)

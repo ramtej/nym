@@ -1,6 +1,7 @@
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
+import replace from '@rollup/plugin-replace';
 import { wasm } from '@rollup/plugin-wasm';
 
 /**
@@ -20,11 +21,11 @@ export const getConfig = (opts) => ({
     resolve({ extensions: ['.js', '.ts'] }),
     commonjs(),
     // this is some nasty monkey patching that removes the WASM URL (because it is handled by the `wasm` plugin)
-    // replace({
-    //   values: { "input = new URL('nym_credential_client_wasm_bg.wasm', import.meta.url);": 'input = undefined;' },
-    //   delimiters: ['', ''],
-    //   preventAssignment: true,
-    // }),
+    replace({
+      values: { "input = new URL('nym_credential_client_wasm_bg.wasm', import.meta.url);": 'input = undefined;' },
+      delimiters: ['', ''],
+      preventAssignment: true,
+    }),
     opts?.inlineWasm === true
       ? wasm({ maxFileSize: 20_000_000, targetEnv: 'browser' }) // force the wasm plugin to embed the wasm bundle - this means no downstream bundlers have to worry about handling it
       : wasm({
