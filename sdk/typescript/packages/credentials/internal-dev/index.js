@@ -1,3 +1,3 @@
-import { createBandwithCredential } from '../dist/cjs/index.js';
+import { createBandwithCredential } from '../dist/esm/index.js';
 
 export { createBandwithCredential };
