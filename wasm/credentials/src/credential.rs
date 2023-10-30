@@ -4,9 +4,11 @@
 use crate::error::WasmCredentialClientError;
 use crate::opts::CredentialClientOpts;
 use js_sys::Promise;
+use nym_bandwidth_controller::acquire::state::State;
 use nym_credential_storage::ephemeral_storage::EphemeralCredentialStorage;
 use nym_credential_storage::models::CoconutCredential;
 use nym_credential_storage::storage::Storage;
+use nym_credentials::coconut::bandwidth::BandwidthVoucher;
 use nym_network_defaults::NymNetworkDetails;
 use nym_validator_client::nyxd::{Config, CosmWasmCoin};
 use nym_validator_client::DirectSigningReqwestRpcNyxdClient;
@@ -21,6 +23,22 @@ use wasm_utils::error::PromisableResult;
 pub fn acquire_credential(mnemonic: String, amount: String, opts: CredentialClientOpts) -> Promise {
     future_to_promise(async move {
         acquire_credential_async(mnemonic, amount, opts)
+            .await
+            .map(|credential| {
+                serde_wasm_bindgen::to_value(&credential).expect("this serialization can't fail")
+            })
+            .into_promise_result()
+    })
+}
+
+#[wasm_bindgen(js_name = recoverCredential)]
+pub fn recover_credential(
+    mnemonic: String,
+    voucher: Vec<u8>,
+    opts: CredentialClientOpts,
+) -> Promise {
+    future_to_promise(async move {
+        recover_credential_async(mnemonic, &voucher, opts)
             .await
             .map(|credential| {
                 serde_wasm_bindgen::to_value(&credential).expect("this serialization can't fail")
@@ -79,6 +97,57 @@ async fn acquire_credential_async(
     console_log!("starting the deposit...");
     let deposit_state = nym_bandwidth_controller::acquire::deposit(&client, amount).await?;
     console_log!("obtained voucher: {:#?}", deposit_state.voucher);
+
+    // TODO: use proper persistent storage here. probably indexeddb like we have for our 'normal' wasm client
+    let ephemeral_storage = EphemeralCredentialStorage::default();
+
+    // store credential in the ephemeral storage...
+    nym_bandwidth_controller::acquire::get_credential(&deposit_state, &client, &ephemeral_storage)
+        .await?;
+
+    // and immediately get it out!
+    let cred = ephemeral_storage.get_next_coconut_credential().await?;
+
+    Ok(cred.into())
+}
+
+async fn recover_credential_async(
+    mnemonic: String,
+    voucher_blob: &Vec<u8>,
+    opts: CredentialClientOpts,
+) -> Result<WasmCoconutCredential, WasmCredentialClientError> {
+    let voucher = BandwidthVoucher::try_from_bytes(voucher_blob)
+        .map_err(|_| WasmCredentialClientError::InvalidVoucherBlob)?;
+    let deposit_state = State::new(voucher);
+
+    // start by parsing mnemonic so that we could immediately move it into a Zeroizing wrapper
+    let mnemonic = crate::helpers::parse_mnemonic(mnemonic)?;
+
+    let network = match opts.network_details {
+        Some(specified) => specified,
+        None => {
+            if let Some(true) = opts.use_sandbox {
+                crate::helpers::minimal_coconut_sandbox()
+            } else {
+                NymNetworkDetails::new_mainnet()
+            }
+        }
+    };
+
+    let config = Config::try_from_nym_network_details(&network)?;
+
+    // just get the first nyxd endpoint
+    let nyxd_endpoint = network
+        .endpoints
+        .get(0)
+        .ok_or(WasmCredentialClientError::NoNyxdEndpoints)?
+        .try_nyxd_url()?;
+
+    let client = DirectSigningReqwestRpcNyxdClient::connect_reqwest_with_mnemonic(
+        config,
+        nyxd_endpoint,
+        mnemonic,
+    );
 
     // TODO: use proper persistent storage here. probably indexeddb like we have for our 'normal' wasm client
     let ephemeral_storage = EphemeralCredentialStorage::default();

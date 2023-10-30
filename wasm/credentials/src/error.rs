@@ -56,6 +56,9 @@ pub enum WasmCredentialClientError {
         #[from]
         source: bip39::Error,
     },
+
+    #[error("invalid voucher blob")]
+    InvalidVoucherBlob,
 }
 
 wasm_error!(WasmCredentialClientError);
