@@ -1,11 +1,11 @@
 /* eslint-disable no-console, import/no-extraneous-dependencies */
 import type { WasmCoconutCredential } from '@nymproject/nym-credential-client-wasm';
+import type { CredentialClientOpts } from './types';
+
 import init, { acquireCredential } from '@nymproject/nym-credential-client-wasm';
 
 // @ts-expect-error has no standard export
 import getCredentialWasmBytes from '@nymproject/nym-credential-client-wasm/nym_credential_client_wasm_bg.wasm';
-
-import type { CredentialClientOpts } from './types';
 
 export async function createBandwithCredential(
   mnemonic: string,

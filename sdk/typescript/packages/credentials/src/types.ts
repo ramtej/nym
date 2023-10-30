@@ -1,5 +1,5 @@
 // TODO: This entire file could probably be removed,
-// if the referenced types can be put in a package created from common/client-core with wasm_bindgen
+// if the referenced types can be put in a wrapper package of common/client-core with wasm_bindgen
 
 export interface CredentialClientOpts {
   networkDetails?: NymNetworkDetails;
