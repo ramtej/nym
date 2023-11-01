@@ -7,31 +7,25 @@ use boringtun::{
 use futures::StreamExt;
 use log::error;
 use nym_task::TaskClient;
-use nym_wireguard_types::{registration::GatewayClientRegistry, PeerPublicKey};
+use nym_wireguard_types::{registration::GatewayClientRegistry, PeerPublicKey, WG_PORT};
 use tap::TapFallible;
-use tokio::{
-    net::UdpSocket,
-    sync::{
-        mpsc::{self},
-        Mutex,
-    },
-};
+use tokio::{net::UdpSocket, sync::Mutex};
 
 use crate::{
-    active_peers::ActivePeers,
+    active_peers::{ActivePeers, PeerEventSender},
     error::WgError,
     event::Event,
     network_table::NetworkTable,
+    packet_relayer::PacketRelaySender,
     registered_peers::{RegisteredPeer, RegisteredPeers},
-    setup::{self, WG_ADDRESS, WG_PORT},
-    tun_task_channel::TunTaskTx,
+    setup::{self, WG_ADDRESS},
     wg_tunnel::PeersByTag,
 };
 
 const MAX_PACKET: usize = 65535;
 
 // Registered peers
-pub(crate) type PeersByIp = NetworkTable<mpsc::UnboundedSender<Event>>;
+pub(crate) type PeersByIp = NetworkTable<PeerEventSender>;
 
 async fn add_test_peer(registered_peers: &mut RegisteredPeers) {
     let peer_static_public = PeerPublicKey::new(setup::peer_static_public_key());
@@ -56,16 +50,16 @@ pub struct WgUdpListener {
     registered_peers: RegisteredPeers,
 
     // The routing table, as defined by wireguard
-    peers_by_ip: Arc<std::sync::Mutex<PeersByIp>>,
+    peers_by_ip: Arc<tokio::sync::Mutex<PeersByIp>>,
 
     // ... or alternatively we can map peers by their tag
-    peers_by_tag: Arc<std::sync::Mutex<PeersByTag>>,
+    peers_by_tag: Arc<tokio::sync::Mutex<PeersByTag>>,
 
     // The UDP socket to the peer
     udp: Arc<UdpSocket>,
 
     // Send data to the TUN device for sending
-    tun_task_tx: TunTaskTx,
+    packet_tx: PacketRelaySender,
 
     // Wireguard rate limiter
     rate_limiter: RateLimiter,
@@ -75,9 +69,9 @@ pub struct WgUdpListener {
 
 impl WgUdpListener {
     pub async fn new(
-        tun_task_tx: TunTaskTx,
-        peers_by_ip: Arc<std::sync::Mutex<PeersByIp>>,
-        peers_by_tag: Arc<std::sync::Mutex<PeersByTag>>,
+        packet_tx: PacketRelaySender,
+        peers_by_ip: Arc<tokio::sync::Mutex<PeersByIp>>,
+        peers_by_tag: Arc<tokio::sync::Mutex<PeersByTag>>,
         gateway_client_registry: Arc<GatewayClientRegistry>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let wg_address = SocketAddr::new(WG_ADDRESS.parse().unwrap(), WG_PORT);
@@ -101,7 +95,7 @@ impl WgUdpListener {
             peers_by_ip,
             peers_by_tag,
             udp,
-            tun_task_tx,
+            packet_tx,
             rate_limiter,
             gateway_client_registry,
         })
@@ -149,6 +143,7 @@ impl WgUdpListener {
                         log::info!("udp: received {len} bytes from {addr} from known peer");
                         peer_tx
                             .send(Event::Wg(buf[..len].to_vec().into()))
+                            .await
                             .tap_err(|e| log::error!("{e}"))
                             .ok();
                         continue;
@@ -192,6 +187,7 @@ impl WgUdpListener {
                         // We found the peer as connected, even though the addr was not known
                         log::info!("udp: received {len} bytes from {addr} which is a known peer with unknown addr");
                         peer_tx.send(Event::WgVerified(buf[..len].to_vec().into()))
+                            .await
                             .tap_err(|err| log::error!("{err}"))
                             .ok();
                     } else {
@@ -207,13 +203,15 @@ impl WgUdpListener {
                             *registered_peer.public_key,
                             registered_peer.index,
                             registered_peer.allowed_ips,
-                            self.tun_task_tx.clone(),
+                            // self.tun_task_tx.clone(),
+                            self.packet_tx.clone(),
                         );
 
-                        self.peers_by_ip.lock().unwrap().insert(registered_peer.allowed_ips, peer_tx.clone());
-                        self.peers_by_tag.lock().unwrap().insert(tag, peer_tx.clone());
+                        self.peers_by_ip.lock().await.insert(registered_peer.allowed_ips, peer_tx.clone());
+                        self.peers_by_tag.lock().await.insert(tag, peer_tx.clone());
 
                         peer_tx.send(Event::Wg(buf[..len].to_vec().into()))
+                            .await
                             .tap_err(|e| log::error!("{e}"))
                             .ok();
 
